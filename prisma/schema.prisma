@@ -1,0 +1,444 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+enum TipoGasto {
+  FIXO
+  VARIAVEL
+}
+
+enum UserRole {
+  ADMIN
+  VENERAVEL
+  TESOUREIRO
+  SECRETARIO
+}
+
+model Loja {
+  id                String    @id @default(cuid())
+  nome              String
+  endereco          String?   @db.Text
+  oriente           String?
+  logoUrl           String?
+  emailVeneravel    String
+  usernameAdmin     String?   // Username desejado (usado durante cadastro pendente)
+  passwordAdmin     String?   // Senha hashada (usada durante cadastro pendente)
+  codigoValidacao   String?
+  codigoExpiraEm    DateTime?
+  // Status: PENDENTE → TRIAL → ATIVA → EXPIRADA | SUSPENSA
+  status            String    @default("PENDENTE")
+  // Plano de assinatura (definido pelo admin)
+  plano             String?   // MENSAL, QUINZENAL, ANUAL, DEFINITIVO
+  planoAtivadoEm    DateTime? // Quando o admin ativou
+  planoExpiraEm     DateTime? // null para DEFINITIVO
+  trialAtivadoEm    DateTime? // Quando o usuário validou o código (início das 48h)
+  emailRemetente    String?   // Email usado para enviar alertas
+  emailRemetenteSenha String? // Senha de app do email remetente
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  users                     User[]
+  membros                   Membro[]
+  atas                      Ata[]
+  reunioes                  Reuniao[]
+  planilhas                 PlanilhaFinanceira[]
+  candidatos                Candidato[]
+  promocoes                 PromocaoElevacao[]
+  configuracoesGerais       ConfiguracaoGeral[]
+  configuracoesEtapas       ConfiguracaoEtapas[]
+  configuracoesMensalidades ConfiguracaoMensalidade[]
+  controlesMensalidades     ControleMensalidade[]
+
+  @@map("lojas")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  password    String
+  role        UserRole @default(ADMIN)
+  permissions Json?    // Permissões individuais: ["membros", "atas", "presencas", "recibo", "financeiro", "mensalidades"]
+  grau        String?  // APRENDIZ, COMPANHEIRO, MESTRE, MESTRE INSTALADO - controla visualização de atas
+  lojaId      String?
+  loja        Loja?    @relation(fields: [lojaId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Membro {
+  id               String                 @id @default(cuid())
+  lojaId           String?
+  loja             Loja?                  @relation(fields: [lojaId], references: [id])
+  nome             String
+  grau             String
+  status           String
+
+  cim              String?
+  cargo            String?
+  assinaturaUrl    String?
+  email            String?
+
+  dataNascimento   String?
+  dataIniciacao    String?
+  dataFiliacao     String?
+  dataPassagemGrau String?
+  dataElevacao     String?
+  dataInstalacao   String?
+  dataRegularizacao String?
+  dataKitPlacet    String?
+
+  dataCadastro     DateTime               @default(now())
+
+  pagamentos       PagamentoMensalidade[]
+  atasCargos       AtaCargo[]
+  atasPresencas    AtaPresenca[]
+  presencas        Presenca[]
+  dependentes      Dependente[]
+
+  @@map("membros")
+}
+
+model Dependente {
+  id              String   @id @default(cuid())
+  membroId        String
+  membro          Membro   @relation(fields: [membroId], references: [id], onDelete: Cascade)
+
+  tipoDependente  String   // ESPOSA, MARIDO, FILHO, FILHA
+  nome            String
+  dataNascimento  String?
+  dataCasamento   String?  // Apenas para cônjuge
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("dependentes")
+}
+
+model PlanilhaFinanceira {
+  id                      String    @id @default(cuid())
+  lojaId                  String?
+  loja                    Loja?     @relation(fields: [lojaId], references: [id])
+  mes                     Int       // 1-12
+  ano                     Int
+  valorMensalidade        Decimal   @db.Decimal(10, 2)
+  valorMensalidadeExcecao Decimal?  @db.Decimal(10, 2)
+  membrosExcecaoIds       String?   // IDs separados por vírgula
+  inadimplenciaPorMembro  Json?     // { "membroId": [{ mes: 12, ano: 2024 }] }
+  
+  // Saldos de Caixa
+  saldoInicialCaixa       Decimal   @db.Decimal(10, 2)
+  saldoFinalCaixa         Decimal   @db.Decimal(10, 2)
+  totalReceitas           Decimal   @default(0) @db.Decimal(10, 2) // Alias para totalRecebidoCaixa
+  totalDespesas           Decimal   @default(0) @db.Decimal(10, 2)
+  
+  // Saldos de Tronco
+  saldoInicialTronco      Decimal   @db.Decimal(10, 2)
+  saldoFinalTronco        Decimal   @db.Decimal(10, 2)
+  totalTroncoRecebido     Decimal   @default(0) @db.Decimal(10, 2)
+  totalDoacoesFilantropicas Decimal @default(0) @db.Decimal(10, 2)
+  
+  // Saldo Total Geral (Caixa + Tronco)
+  saldoFinal              Decimal   @default(0) @db.Decimal(10, 2)
+  
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  
+  receitas                Receita[]
+  despesas                Despesa[]
+  pagamentos              PagamentoMensalidade[]
+  troncos                 Tronco[]
+  doacoesFilantropicas    DoacaoFilantropica[]
+
+  @@unique([mes, ano, lojaId])
+  @@map("planilhas_financeiras")
+}
+
+model PagamentoMensalidade {
+  id               String             @id @default(cuid())
+  planilhaId       String
+  membroId         String
+  quantidadeMeses  Int                // Pode ser negativo para inadimplências
+  valorPago        Decimal            @db.Decimal(10, 2)
+  mesesReferentes  String             // Ex: "JAN/24, FEV/24"
+  dataPagamento    DateTime           @default(now())
+  antecipado       Boolean            @default(false)
+
+  planilha         PlanilhaFinanceira @relation(fields: [planilhaId], references: [id], onDelete: Cascade)
+  membro           Membro             @relation(fields: [membroId], references: [id], onDelete: Cascade)
+
+  @@map("pagamentos_mensalidade")
+}
+
+model Receita {
+  id          String             @id @default(cuid())
+  planilhaId  String
+  descricao   String
+  valor       Decimal            @db.Decimal(10, 2)
+  data        DateTime           @default(now())
+  
+  planilha    PlanilhaFinanceira @relation(fields: [planilhaId], references: [id], onDelete: Cascade)
+
+  @@map("receitas")
+}
+
+model Despesa {
+  id          String             @id @default(cuid())
+  planilhaId  String
+  descricao   String
+  valor       Decimal            @db.Decimal(10, 2)
+  categoria   String             // DESPESAS DE CUSTEIO, etc
+  tipoGasto   TipoGasto          // FIXO ou VARIAVEL (enum)
+  data        DateTime           @default(now())
+  
+  planilha    PlanilhaFinanceira @relation(fields: [planilhaId], references: [id], onDelete: Cascade)
+
+  @@map("despesas")
+}
+
+model Tronco {
+  id          String             @id @default(cuid())
+  planilhaId  String
+  planilha    PlanilhaFinanceira @relation(fields: [planilhaId], references: [id], onDelete: Cascade)
+  grauSessao  String
+  data        DateTime           @default(now())
+  dataDeposito DateTime          @default(now())
+  valor       Decimal            @db.Decimal(10, 2)
+  
+  @@map("tronco_beneficencia")
+}
+
+model DoacaoFilantropica {
+  id            String             @id @default(cuid())
+  planilhaId    String
+  descricao     String
+  valor         Decimal            @db.Decimal(10, 2)
+  dataPagamento DateTime           @default(now())
+  
+  planilha      PlanilhaFinanceira @relation(fields: [planilhaId], references: [id], onDelete: Cascade)
+
+  @@map("doacoes_filantropicas")
+}
+
+// Adicione estes modelos ao seu schema.prisma existente
+// IMPORTANTE: Os modelos AtaCargo e AtaPresenca têm campo nomeManual para aceitar digitação manual
+
+model Ata {
+  id                    String   @id @default(cuid())
+  lojaId                String?
+  loja                  Loja?    @relation(fields: [lojaId], references: [id])
+  numeroAta             String   // ex: "33/2025"
+  livro                 String   // "APRENDIZ", "COMPANHEIRO", "MESTRE"
+  tipoSessao            String?  // "MAGNA", "INICIACAO", "ELEVACAO", "PASSAGEM_GRAU", "INSTALACAO", etc.
+  data                  DateTime
+  horarioInicio         String   // ex: "19:45"
+  horarioEncerramento   String   // ex: "22:20"
+  numeroPresentes       Int
+  valorTronco           Decimal  @db.Decimal(10, 2)
+  
+  // Local da sessão
+  local                 String?  @db.Text
+
+  // Assinaturas
+  usarAssinaturas       Boolean  @default(false)
+
+  // Conteúdo da ata em formato texto
+  leituraAta            String?  @db.Text
+  expediente            String?  @db.Text
+  ordemDia              String?  @db.Text
+  coberturaTemplo       String?  @db.Text
+  palavraBemLoja        String?  @db.Text
+  antecipados           String?  @db.Text
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  cargos                AtaCargo[]
+  presencas             AtaPresenca[]
+
+  @@unique([numeroAta, livro, lojaId])
+  @@map("atas")
+}
+
+model AtaCargo {
+  id          String  @id @default(cuid())
+  ataId       String
+  ata         Ata     @relation(fields: [ataId], references: [id], onDelete: Cascade)
+  
+  cargo       String  // ex: "Venerável Mestre", "1° Vigilante"
+  
+  // Pode ser um membro cadastrado OU um nome digitado manualmente
+  membroId    String?
+  membro      Membro? @relation(fields: [membroId], references: [id])
+  nomeManual  String? // Nome digitado manualmente (se não for membro cadastrado)
+  
+  @@map("atas_cargos")
+}
+
+model AtaPresenca {
+  id          String  @id @default(cuid())
+  ataId       String
+  ata         Ata     @relation(fields: [ataId], references: [id], onDelete: Cascade)
+
+  // Pode ser um membro cadastrado OU um nome digitado manualmente
+  membroId    String?
+  membro      Membro? @relation(fields: [membroId], references: [id])
+  nomeManual  String? // Nome digitado manualmente (se não for membro cadastrado)
+
+  tipo        String  // "QUADRO" ou "VISITANTE"
+
+  @@map("atas_presencas")
+}
+
+// Controle de Mensalidades
+model ControleMensalidade {
+  id        String @id @default(cuid())
+  lojaId    String?
+  loja      Loja?  @relation(fields: [lojaId], references: [id])
+  ano       Int
+  membroId  String
+  mes       String // JAN, FEV, MAR, etc
+  status    String // ok, x, p, i
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([ano, membroId, mes, lojaId])
+  @@map("controle_mensalidades")
+}
+
+model Candidato {
+  id                   String    @id @default(cuid())
+  lojaId               String?
+  loja                 Loja?     @relation(fields: [lojaId], references: [id])
+  nome                 String
+  dataNascimento       String?
+  nomeConjuge          String?
+  enderecoResidencial  String?   @db.Text
+  telefone             String?   // celular
+  telefoneFixo         String?
+  enderecoProfissional String?   @db.Text
+  grauInstrucao        String?
+  email                String?
+  proponenteIds        String?   // JSON: ["membroId1", "membroId2"]
+  proponenteNomes      String?   // Nomes separados por vírgula (display)
+
+  etapaAtual           Int       @default(1)
+  status               String    @default("EM_ANDAMENTO") // EM_ANDAMENTO, APROVADO, REPROVADO, DESISTIU
+
+  // Progresso de cada etapa: { "1": { concluida: true, data: "2025-01-01", obs: "" }, ... }
+  etapas               Json?
+
+  resultadoSindicancia String?   // APROVADO, REPROVADO
+  cim                  String?
+  observacoes          String?   @db.Text
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@map("candidatos")
+}
+
+model PromocaoElevacao {
+  id        String   @id @default(cuid())
+  lojaId    String?
+  loja      Loja?    @relation(fields: [lojaId], references: [id])
+  membroId  String
+  tipo      String   // PROMOCAO ou ELEVACAO
+  status    String   @default("EM_ANDAMENTO") // EM_ANDAMENTO, CONCLUIDO, REPROVADO
+  etapas    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("promocoes_elevacoes")
+}
+
+model ConfiguracaoEtapas {
+  id        String   @id @default(cuid())
+  lojaId    String?
+  loja      Loja?    @relation(fields: [lojaId], references: [id])
+  etapas    Json
+  updatedAt DateTime @updatedAt
+
+  @@map("configuracao_etapas")
+}
+
+model ConfiguracaoGeral {
+  id     String  @id @default(cuid())
+  lojaId String?
+  loja   Loja?   @relation(fields: [lojaId], references: [id])
+  chave  String
+  valor  String  @db.Text
+
+  @@unique([chave, lojaId])
+  @@map("configuracao_geral")
+}
+
+model ConfiguracaoMensalidade {
+  id               String @id @default(cuid())
+  lojaId           String?
+  loja             Loja?  @relation(fields: [lojaId], references: [id])
+  ano              Int
+  mes              String // JAN, FEV, MAR, etc
+  valorMensalidade String
+  valorParcial     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([ano, mes, lojaId])
+  @@map("configuracao_mensalidades")
+}
+
+// Modelos para controle de presença em reuniões
+model Reuniao {
+  id        String     @id @default(cuid())
+  lojaId    String?
+  loja      Loja?      @relation(fields: [lojaId], references: [id])
+  data      DateTime
+  horario   String?    // Ex: "19:30"
+  grau      String     // "APRENDIZ", "COMPANHEIRO", "MESTRE"
+
+  // Controle de alertas para evitar envio duplicado
+  alertaHojeEnviadoEm   DateTime?  // Data/hora que o alerta "hoje" foi enviado
+  alertaAmanhaEnviadoEm DateTime?  // Data/hora que o alerta "amanhã" foi enviado
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  presencas Presenca[]
+
+  @@map("reunioes")
+}
+
+model Presenca {
+  id        String   @id @default(cuid())
+  reuniaoId String
+  membroId  String
+  presente  Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reuniao   Reuniao  @relation(fields: [reuniaoId], references: [id], onDelete: Cascade)
+  membro    Membro   @relation(fields: [membroId], references: [id], onDelete: Cascade)
+
+  @@unique([reuniaoId, membroId])
+  @@map("presencas")
+}
+
+// Adicione estas relações ao modelo Membro existente:
+// model Membro {
+//   ...
+//   atasCargos    AtaCargo[]
+//   atasPresencas AtaPresenca[]
+//   presencas     Presenca[]
+// }
+
