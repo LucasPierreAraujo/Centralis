@@ -53,9 +53,18 @@ export async function POST(request) {
 
       // Copiar configurações gerais da loja padrão (nome, logo, endereço, oriente)
       const configsParaCopiar = [
-        { chave: 'nome_loja', valor: loja.nome },
-        { chave: 'oriente', valor: loja.oriente || '' },
-        { chave: 'endereco', valor: loja.endereco || '' },
+        { chave: 'nome_loja',    valor: loja.nome },
+        { chave: 'oriente',      valor: loja.oriente || '' },
+        { chave: 'endereco',     valor: loja.endereco || '' },
+        { chave: 'rito',         valor: loja.rito || 'REAA' },
+        { chave: 'cargos',       valor: loja.cargosIniciais || JSON.stringify([
+          'Venerável Mestre','1° Vigilante','2° Vigilante','Secretário','Tesoureiro',
+          'Orador','1° Diácono','2° Diácono','Preparador','Mestre de Harmonia',
+          'Guarda do Templo','Membro do Ministério Público',
+        ]) },
+        { chave: 'terminologia', valor: loja.terminologiaJson || JSON.stringify({
+          INICIACAO: 'Iniciação', PASSAGEM_GRAU: 'Passagem de Grau', ELEVACAO: 'Elevação',
+        }) },
       ];
       if (loja.logoUrl) configsParaCopiar.push({ chave: 'logo', valor: loja.logoUrl });
 

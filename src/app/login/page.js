@@ -1,7 +1,8 @@
 "use client"
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogIn, Eye, EyeOff, Plus, X, Upload, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
+import { LogIn, Eye, EyeOff, Plus, X, Upload, ChevronLeft, ChevronRight, CheckCircle, Trash2 } from 'lucide-react';
+import { RITOS, CARGOS_PADRAO, getTerminologiaPadrao } from '../../../lib/rito';
 
 // ─────────────────────────────────────────────────────────────
 // Componente principal de Login
@@ -121,7 +122,7 @@ export default function LoginPage() {
 // Modal multi-step de cadastro de loja
 // ─────────────────────────────────────────────────────────────
 function ModalCadastroLoja({ onClose }) {
-  const [etapa, setEtapa] = useState(1); // 1=dados loja, 2=acesso, 3=validação, 4=sucesso
+  const [etapa, setEtapa] = useState(1); // 1=dados, 2=rito&cargos, 3=credenciais, 4=validação, 5=sucesso
   const [enviando, setEnviando] = useState(false);
   const [lojaId, setLojaId] = useState('');
   const [mensagemErro, setMensagemErro] = useState('');
@@ -136,6 +137,9 @@ function ModalCadastroLoja({ onClose }) {
     oriente: '',
     logoUrl: '',
     emailVeneravel: '',
+    rito: 'REAA',
+    cargos: [...CARGOS_PADRAO],
+    terminologia: getTerminologiaPadrao('REAA'),
     username: '',
     password: '',
     confirmarSenha: '',
@@ -144,6 +148,24 @@ function ModalCadastroLoja({ onClose }) {
   });
 
   const set = (campo, valor) => setForm(f => ({ ...f, [campo]: valor }));
+
+  const handleRitoChange = (novoRito) => {
+    setForm(f => ({
+      ...f,
+      rito: novoRito,
+      terminologia: getTerminologiaPadrao(novoRito),
+    }));
+  };
+
+  const handleCargoChange = (idx, valor) => {
+    const novos = [...form.cargos];
+    novos[idx] = valor;
+    set('cargos', novos);
+  };
+
+  const handleCargoAdd = () => set('cargos', [...form.cargos, '']);
+
+  const handleCargoRemove = (idx) => set('cargos', form.cargos.filter((_, i) => i !== idx));
 
   const handleUploadLogo = async (e) => {
     const file = e.target.files?.[0];
@@ -192,6 +214,9 @@ function ModalCadastroLoja({ onClose }) {
           oriente: form.oriente,
           logoUrl: form.logoUrl,
           emailVeneravel: form.emailVeneravel,
+          rito: form.rito,
+          cargos: form.cargos.filter(c => c.trim()),
+          terminologia: form.terminologia,
           username: form.username,
           password: form.password,
           emailRemetente: form.emailRemetente || null,
@@ -227,7 +252,7 @@ function ModalCadastroLoja({ onClose }) {
       });
       const data = await res.json();
       if (data.success) {
-        setEtapa(4);
+        setEtapa(5);
       } else {
         setMensagemErro(data.message || 'Código inválido ou expirado.');
       }
@@ -250,25 +275,25 @@ function ModalCadastroLoja({ onClose }) {
         </div>
 
         {/* Indicador de etapas */}
-        {etapa < 4 && (
+        {etapa < 5 && (
           <div className="flex items-center justify-center gap-2 px-6 pt-5">
-            {[1, 2, 3].map(n => (
+            {[1, 2, 3, 4].map(n => (
               <React.Fragment key={n}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                   etapa > n ? 'bg-green-500 text-white' :
                   etapa === n ? 'bg-blue-600 text-white' :
                   'bg-gray-200 text-gray-500'
                 }`}>
-                  {etapa > n ? <CheckCircle size={16} /> : n}
+                  {etapa > n ? <CheckCircle size={14} /> : n}
                 </div>
-                {n < 3 && <div className={`flex-1 h-1 rounded ${etapa > n ? 'bg-green-400' : 'bg-gray-200'}`} />}
+                {n < 4 && <div className={`flex-1 h-1 rounded ${etapa > n ? 'bg-green-400' : 'bg-gray-200'}`} />}
               </React.Fragment>
             ))}
           </div>
         )}
-        {etapa < 4 && (
+        {etapa < 5 && (
           <p className="text-center text-sm text-gray-500 pt-1 pb-4">
-            {etapa === 1 ? 'Dados da Loja' : etapa === 2 ? 'Credenciais de Acesso' : 'Confirmar Cadastro'}
+            {etapa === 1 ? 'Dados da Loja' : etapa === 2 ? 'Rito & Cargos' : etapa === 3 ? 'Credenciais' : 'Confirmar Cadastro'}
           </p>
         )}
 
@@ -336,8 +361,66 @@ function ModalCadastroLoja({ onClose }) {
             </div>
           )}
 
-          {/* ─── Etapa 2: Credenciais de Acesso ─── */}
+          {/* ─── Etapa 2: Rito & Cargos ─── */}
           {etapa === 2 && (
+            <div className="space-y-5">
+              <Campo label="Rito da Loja *" placeholder="">
+                <select
+                  value={form.rito}
+                  onChange={e => handleRitoChange(e.target.value)}
+                  className="input-campo"
+                >
+                  {RITOS.map(r => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+              </Campo>
+
+              <div className="border-t border-gray-200 pt-4">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Nomes das Cerimônias</p>
+                <p className="text-xs text-gray-500 mb-3">Pré-preenchido conforme o rito selecionado. Edite se necessário.</p>
+                <div className="space-y-3">
+                  <Campo label="Iniciação (1° Grau)" placeholder="">
+                    <input type="text" value={form.terminologia.INICIACAO} onChange={e => set('terminologia', { ...form.terminologia, INICIACAO: e.target.value })} className="input-campo" />
+                  </Campo>
+                  <Campo label="2° Grau (Companheiro)" placeholder="">
+                    <input type="text" value={form.terminologia.PASSAGEM_GRAU} onChange={e => set('terminologia', { ...form.terminologia, PASSAGEM_GRAU: e.target.value })} className="input-campo" />
+                  </Campo>
+                  <Campo label="3° Grau (Mestre)" placeholder="">
+                    <input type="text" value={form.terminologia.ELEVACAO} onChange={e => set('terminologia', { ...form.terminologia, ELEVACAO: e.target.value })} className="input-campo" />
+                  </Campo>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-semibold text-gray-700">Cargos da Loja</p>
+                  <button type="button" onClick={handleCargoAdd} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    <Plus size={16} /> Adicionar
+                  </button>
+                </div>
+                <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  {form.cargos.map((cargo, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={cargo}
+                        onChange={e => handleCargoChange(idx, e.target.value)}
+                        className="input-campo flex-1"
+                        placeholder={`Cargo ${idx + 1}`}
+                      />
+                      <button type="button" onClick={() => handleCargoRemove(idx)} className="text-red-400 hover:text-red-600 p-1 flex-shrink-0">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── Etapa 3: Credenciais de Acesso ─── */}
+          {etapa === 3 && (
             <div className="space-y-4">
               <p className="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3">
                 Defina o usuário e senha que serão usados para acessar o sistema com esta loja.
@@ -409,8 +492,8 @@ function ModalCadastroLoja({ onClose }) {
             </div>
           )}
 
-          {/* ─── Etapa 3: Código de Validação ─── */}
-          {etapa === 3 && (
+          {/* ─── Etapa 4: Código de Validação ─── */}
+          {etapa === 4 && (
             <div className="space-y-4 text-center">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
                 <span className="text-3xl">📧</span>
@@ -436,8 +519,8 @@ function ModalCadastroLoja({ onClose }) {
             </div>
           )}
 
-          {/* ─── Etapa 4: Sucesso ─── */}
-          {etapa === 4 && (
+          {/* ─── Etapa 5: Sucesso ─── */}
+          {etapa === 5 && (
             <div className="text-center space-y-4 py-4">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
                 <CheckCircle size={40} className="text-green-600" />
@@ -464,9 +547,9 @@ function ModalCadastroLoja({ onClose }) {
           )}
 
           {/* Botões de navegação */}
-          {etapa < 4 && (
+          {etapa < 5 && (
             <div className="flex gap-3 mt-6">
-              {etapa > 1 && etapa !== 3 && (
+              {etapa > 1 && etapa !== 4 && (
                 <button
                   onClick={() => { setMensagemErro(''); setEtapa(e => e - 1); }}
                   className="flex-1 flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-600 py-2.5 rounded-lg font-semibold hover:bg-gray-50 transition"
@@ -485,6 +568,14 @@ function ModalCadastroLoja({ onClose }) {
               )}
               {etapa === 2 && (
                 <button
+                  onClick={() => { setMensagemErro(''); setEtapa(3); }}
+                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-lg font-bold hover:bg-blue-700 transition"
+                >
+                  Próximo <ChevronRight size={18} />
+                </button>
+              )}
+              {etapa === 3 && (
+                <button
                   onClick={handleEnviarSolicitacao}
                   disabled={enviando || !form.username || !form.password || !form.confirmarSenha}
                   className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-lg font-bold hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
@@ -492,7 +583,7 @@ function ModalCadastroLoja({ onClose }) {
                   {enviando ? 'Enviando...' : 'Enviar código'}
                 </button>
               )}
-              {etapa === 3 && (
+              {etapa === 4 && (
                 <button
                   onClick={handleValidarCodigo}
                   disabled={enviando || codigoDigitado.length !== 6}

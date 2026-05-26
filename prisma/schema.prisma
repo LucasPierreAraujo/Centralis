@@ -37,6 +37,9 @@ model Loja {
   planoAtivadoEm    DateTime? // Quando o admin ativou
   planoExpiraEm     DateTime? // null para DEFINITIVO
   trialAtivadoEm    DateTime? // Quando o usuário validou o código (início das 48h)
+  rito              String?   // REAA, YORK, MODERNO, MEMPHIS, OUTRO
+  cargosIniciais    String?   @db.Text // JSON: lista de cargos definida no cadastro
+  terminologiaJson  String?   @db.Text // JSON: { INICIACAO, PASSAGEM_GRAU, ELEVACAO }
   emailRemetente    String?   // Email usado para enviar alertas
   emailRemetenteSenha String? // Senha de app do email remetente
   createdAt         DateTime  @default(now())

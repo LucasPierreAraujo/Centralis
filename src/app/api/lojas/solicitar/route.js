@@ -53,7 +53,7 @@ function templateEmailCodigo({ nomeLoja, oriente, codigo }) {
 
 export async function POST(request) {
   try {
-    const { nome, endereco, oriente, logoUrl, emailVeneravel, username, password, emailRemetente, emailRemetenteSenha } = await request.json();
+    const { nome, endereco, oriente, logoUrl, emailVeneravel, rito, cargos, terminologia, username, password, emailRemetente, emailRemetenteSenha } = await request.json();
 
     if (!nome || !emailVeneravel || !username || !password) {
       return NextResponse.json({ success: false, message: 'Preencha todos os campos obrigatórios.' }, { status: 400 });
@@ -88,6 +88,9 @@ export async function POST(request) {
         codigoValidacao: codigo,
         codigoExpiraEm: expiraEm,
         status: 'PENDENTE',
+        rito: rito || 'REAA',
+        cargosIniciais: cargos ? JSON.stringify(cargos) : null,
+        terminologiaJson: terminologia ? JSON.stringify(terminologia) : null,
         emailRemetente: emailRemetente || null,
         emailRemetenteSenha: emailRemetenteSenha || null,
       }

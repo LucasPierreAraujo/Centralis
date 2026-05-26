@@ -38,30 +38,51 @@ export default function NovaAtaPage() {
     setCoberturasTemplo(prev => prev.map((c, i) => i === idx ? { ...c, [campo]: valor } : c));
   const [palavraBemLoja, setPalavraBemLoja] = useState('');
   
-  // Cargos (lista de objetos)
-  const [cargos, setCargos] = useState([
-    { cargo: 'Venerável Mestre', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
-    { cargo: '1° Vigilante', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
-    { cargo: '2° Vigilante', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
-    { cargo: 'Secretário', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
-    { cargo: 'Tesoureiro', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
-    { cargo: 'Orador', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
-    { cargo: '1° Diácono', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
-    { cargo: '2° Diácono', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
-    { cargo: 'Preparador', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
-    { cargo: 'Mestre de Harmonia', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
-    { cargo: 'Guarda do Templo', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
-    { cargo: 'Membro do Ministério Público', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
-  ]);
-  
-  // Presenças
-  const [presencasQuadroIds, setPresencasQuadroIds] = useState([]); // Array de IDs dos membros presentes
-  const [presencasVisitantes, setPresencasVisitantes] = useState([]); // Array de strings (nomes)
+  const CARGOS_PADRAO_ATAS = [
+    'Venerável Mestre','1° Vigilante','2° Vigilante','Secretário','Tesoureiro',
+    'Orador','1° Diácono','2° Diácono','Preparador','Mestre de Harmonia',
+    'Guarda do Templo','Membro do Ministério Público',
+  ];
 
+  // Cargos (lista de objetos)
+  const [cargos, setCargos] = useState(
+    CARGOS_PADRAO_ATAS.map(c => ({ cargo: c, valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } }))
+  );
+
+  // Terminologia das sessões (carregada do config da loja)
+  const [terminologia, setTerminologia] = useState({
+    INICIACAO: 'Iniciação', PASSAGEM_GRAU: 'Passagem de Grau', ELEVACAO: 'Elevação',
+  });
+
+  // Presenças
+  const [presencasQuadroIds, setPresencasQuadroIds] = useState([]);
+  const [presencasVisitantes, setPresencasVisitantes] = useState([]);
 
   useEffect(() => {
     carregarMembros();
+    carregarConfig();
   }, []);
+
+  const carregarConfig = async () => {
+    try {
+      const [resCargos, resTermo] = await Promise.all([
+        fetch('/api/configuracao-geral?chave=cargos', { credentials: 'include' }),
+        fetch('/api/configuracao-geral?chave=terminologia', { credentials: 'include' }),
+      ]);
+      const { valor: valorCargos } = await resCargos.json();
+      const { valor: valorTermo } = await resTermo.json();
+
+      if (valorCargos) {
+        const lista = JSON.parse(valorCargos);
+        setCargos(lista.map(c => ({ cargo: c, valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } })));
+      }
+      if (valorTermo) {
+        setTerminologia(JSON.parse(valorTermo));
+      }
+    } catch {
+      // usa defaults
+    }
+  };
 
   const carregarMembros = async () => {
     try {
@@ -268,9 +289,9 @@ export default function NovaAtaPage() {
                   <option value="MAGNA">Magna</option>
                 </optgroup>
                 <optgroup label="Sessões Especiais">
-                  <option value="INICIACAO">Iniciação</option>
-                  <option value="ELEVACAO">Elevação</option>
-                  <option value="PASSAGEM_GRAU">Promoção</option>
+                  <option value="INICIACAO">{terminologia.INICIACAO}</option>
+                  <option value="ELEVACAO">{terminologia.ELEVACAO}</option>
+                  <option value="PASSAGEM_GRAU">{terminologia.PASSAGEM_GRAU}</option>
                   <option value="INSTALACAO">Instalação</option>
                 </optgroup>
                 <optgroup label="Outras Sessões">

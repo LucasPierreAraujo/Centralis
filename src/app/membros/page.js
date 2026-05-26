@@ -63,20 +63,10 @@ export default function MembrosPage() {
 
   const graus = ['CANDIDATO', 'APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'MESTRE INSTALADO', 'FILIADO', 'DEPENDENTE', 'OUTROS'];
   const statusOptions = ['ATIVO', 'INATIVO'];
-  const cargosDisponiveis = [
-    'VENERÁVEL MESTRE',
-    '1º VIGILANTE',
-    '2º VIGILANTE',
-    'ORADOR',
-    'SECRETÁRIO',
-    'TESOUREIRO',
-    '1º DIÁCONO',
-    '2º DIÁCONO',
-    'MESTRE DE HARMONIA',
-    'PREPARADOR',
-    'GUARDA DO TEMPLO',
-    'MEMBRO DO MINISTÉRIO PÚBLICO',
-  ];
+  const [cargosDisponiveis, setCargosDisponiveis] = useState([
+    'VENERÁVEL MESTRE','1º VIGILANTE','2º VIGILANTE','ORADOR','SECRETÁRIO','TESOUREIRO',
+    '1º DIÁCONO','2º DIÁCONO','MESTRE DE HARMONIA','PREPARADOR','GUARDA DO TEMPLO','MEMBRO DO MINISTÉRIO PÚBLICO',
+  ]);
 
   // ================== CARREGAR MEMBROS ==================
   const carregarMembros = async () => {
@@ -132,6 +122,15 @@ export default function MembrosPage() {
     carregarMembros();
     carregarDependentes();
     carregarCandidatosPop();
+    fetch('/api/configuracao-geral?chave=cargos', { credentials: 'include' })
+      .then(r => r.json())
+      .then(({ valor }) => {
+        if (valor) {
+          const lista = JSON.parse(valor);
+          setCargosDisponiveis(lista.map(c => c.toUpperCase()));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Atualiza mestres proponentes quando membros carrega
