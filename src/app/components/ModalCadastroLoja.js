@@ -108,7 +108,7 @@ export default function ModalCadastroLoja({ onClose, modoApp = false }) {
       const data = await res.json();
       if (data.success) {
         setLojaId(data.lojaId);
-        setEtapa(3);
+        setEtapa(4);
       } else {
         setMensagemErro(data.message || 'Erro ao enviar solicitação.');
       }
