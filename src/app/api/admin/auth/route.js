@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { SignJWT, jwtVerify } from 'jose';
 
 const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
-const ADMIN_USER = 'pierre';
-const ADMIN_PASS = '69239632';
+const ADMIN_USER = process.env.ADMIN_USER;
+const ADMIN_PASS = process.env.ADMIN_PASS;
 
 export async function POST(request) {
   try {

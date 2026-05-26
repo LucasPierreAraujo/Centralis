@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogIn, Eye, EyeOff, Plus, X, Upload, ChevronLeft, ChevronRight, CheckCircle, Trash2 } from 'lucide-react';
-import { RITOS, CARGOS_PADRAO, getTerminologiaPadrao } from '../../../lib/rito';
+import { RITOS, CARGOS_PADRAO, getTerminologiaPadrao } from '../../lib/rito';
 
 // ─────────────────────────────────────────────────────────────
 // Componente principal de Login
