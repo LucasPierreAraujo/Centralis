@@ -65,11 +65,22 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: 'Este nome de usuário já está em uso.' }, { status: 409 });
     }
 
-    // Verificar se há solicitação pendente com mesmo username
-    const lojaComUsername = await prisma.loja.findFirst({ where: { usernameAdmin: username } });
+    // Verificar se há solicitação pendente (não expirada) com mesmo username
+    const lojaComUsername = await prisma.loja.findFirst({
+      where: {
+        usernameAdmin: username,
+        status: 'PENDENTE',
+        codigoExpiraEm: { gt: new Date() },
+      }
+    });
     if (lojaComUsername) {
       return NextResponse.json({ success: false, message: 'Este nome de usuário já está em uso.' }, { status: 409 });
     }
+
+    // Limpar solicitações pendentes expiradas com o mesmo username para reutilização
+    await prisma.loja.deleteMany({
+      where: { usernameAdmin: username, status: 'PENDENTE', codigoExpiraEm: { lte: new Date() } }
+    });
 
     const passwordHash = await hashPassword(password);
     const codigo = gerarCodigo();

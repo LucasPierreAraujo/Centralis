@@ -1,7 +1,8 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Users, LogOut, BookOpen, DollarSign, ClipboardCheck, CreditCard, TrendingUp, Calendar, Shield, Mail, UserPlus, AlertTriangle, Clock } from 'lucide-react';
+import { FileText, Users, LogOut, BookOpen, DollarSign, ClipboardCheck, CreditCard, TrendingUp, Calendar, Shield, Mail, UserPlus, AlertTriangle, Clock, Plus } from 'lucide-react';
+import ModalCadastroLoja from '../components/ModalCadastroLoja';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function DashboardPage() {
   const [loadingUser, setLoadingUser] = useState(true);
   const [user, setUser] = useState(null);
   const [lojaStatus, setLojaStatus] = useState(null);
+  const [modalNovaLoja, setModalNovaLoja] = useState(false);
   const anoAtual = new Date().getFullYear();
 
   useEffect(() => {
@@ -193,14 +195,23 @@ export default function DashboardPage() {
               <span className="hidden md:block text-blue-300 text-sm font-medium">— {lojaStatus.nome}</span>
             )}
           </div>
-          <button
-            onClick={handleLogout}
-            className="hover:bg-blue-800 active:bg-blue-700 p-3 rounded-lg transition"
-            title="Sair"
-            aria-label="Sair do sistema"
-          >
-            <LogOut size={22} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setModalNovaLoja(true)}
+              className="hidden md:flex items-center gap-2 bg-blue-700 hover:bg-blue-600 active:bg-blue-500 px-3 py-2 rounded-lg transition text-sm font-medium"
+              title="Cadastrar nova loja"
+            >
+              <Plus size={16} /> Nova loja
+            </button>
+            <button
+              onClick={handleLogout}
+              className="hover:bg-blue-800 active:bg-blue-700 p-3 rounded-lg transition"
+              title="Sair"
+              aria-label="Sair do sistema"
+            >
+              <LogOut size={22} />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -469,6 +480,10 @@ export default function DashboardPage() {
           {/* Fecha o container flex-col-reverse */}
         </div>
       </main>
+
+      {modalNovaLoja && (
+        <ModalCadastroLoja onClose={() => setModalNovaLoja(false)} modoApp />
+      )}
     </div>
   );
 }
