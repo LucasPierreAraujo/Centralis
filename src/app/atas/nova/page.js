@@ -21,7 +21,7 @@ export default function NovaAtaPage() {
   const [horarioEncerramento, setHorarioEncerramento] = useState('22:20');
   const [numeroPresentes, setNumeroPresentes] = useState(0);
   const [valorTronco, setValorTronco] = useState('');
-  const [local, setLocal] = useState('Rua Virgílio Arrais, bairro Grangeiro, Crato–CE');
+  const [local, setLocal] = useState('');
   const [usarAssinaturas, setUsarAssinaturas] = useState(false);
 
   // Conteúdo
@@ -361,7 +361,7 @@ export default function NovaAtaPage() {
                 type="text"
                 value={local}
                 onChange={(e) => setLocal(e.target.value)}
-                placeholder="Ex: Rua Virgílio Arrais, bairro Grangeiro, Crato–CE"
+                placeholder="Ex: Rua das Acácias, nº 123, Centro - Cidade, UF"
                 className="w-full border-2 border-gray-300 rounded px-3 py-2 text-gray-900"
               />
             </div>

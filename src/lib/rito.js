@@ -1,9 +1,9 @@
 export const RITOS = [
-  { value: 'REAA',    label: 'Rito Escocês Antigo e Aceito (REAA)' },
-  { value: 'YORK',    label: 'Rito de York' },
-  { value: 'MODERNO', label: 'Rito Moderno (Francês)' },
-  { value: 'MEMPHIS', label: 'Rito de Memphis-Misraim' },
-  { value: 'OUTRO',   label: 'Outro' },
+  { value: 'REAA',      label: 'Rito Escocês Antigo e Aceito (REAA)' },
+  { value: 'YORK',      label: 'Rito de York' },
+  { value: 'MODERNO',   label: 'Rito Moderno (Francês)' },
+  { value: 'SCHRODER',  label: 'Rito Schröder' },
+  { value: 'OUTRO',     label: 'Outro' },
 ];
 
 export const CARGOS_PADRAO = [
@@ -22,11 +22,11 @@ export const CARGOS_PADRAO = [
 ];
 
 const TERMINOLOGIA_POR_RITO = {
-  REAA:    { INICIACAO: 'Iniciação', PASSAGEM_GRAU: 'Passagem de Grau', ELEVACAO: 'Elevação'  },
-  YORK:    { INICIACAO: 'Iniciação', PASSAGEM_GRAU: 'Passagem',         ELEVACAO: 'Exaltação' },
-  MODERNO: { INICIACAO: 'Iniciação', PASSAGEM_GRAU: 'Passagem de Grau', ELEVACAO: 'Elevação'  },
-  MEMPHIS: { INICIACAO: 'Iniciação', PASSAGEM_GRAU: 'Passagem de Grau', ELEVACAO: 'Elevação'  },
-  OUTRO:   { INICIACAO: 'Iniciação', PASSAGEM_GRAU: 'Passagem de Grau', ELEVACAO: 'Elevação'  },
+  REAA:     { INICIACAO: 'Iniciação', PASSAGEM_GRAU: 'Passagem de Grau', ELEVACAO: 'Elevação'  },
+  YORK:     { INICIACAO: 'Iniciação', PASSAGEM_GRAU: 'Passagem',         ELEVACAO: 'Exaltação' },
+  MODERNO:  { INICIACAO: 'Iniciação', PASSAGEM_GRAU: 'Passagem de Grau', ELEVACAO: 'Elevação'  },
+  SCHRODER: { INICIACAO: 'Iniciação', PASSAGEM_GRAU: 'Passagem de Grau', ELEVACAO: 'Elevação'  },
+  OUTRO:    { INICIACAO: 'Iniciação', PASSAGEM_GRAU: 'Passagem de Grau', ELEVACAO: 'Elevação'  },
 };
 
 export function getTerminologiaPadrao(rito) {

@@ -34,9 +34,12 @@ export default function AtasPage() {
       if (res.ok) {
         const data = await res.json();
         setCurrentUser(data.user);
+      } else {
+        router.push('/login');
       }
     } catch (error) {
       console.error('Erro ao carregar usuário:', error);
+      router.push('/login');
     }
   };
 

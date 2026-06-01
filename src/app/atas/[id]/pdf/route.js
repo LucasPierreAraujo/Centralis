@@ -10,22 +10,23 @@ export async function GET(request, { params }) {
     const ata = await prisma.ata.findUnique({
       where: { id },
       include: {
-        cargos: {
-          include: {
-            membro: true
-          }
-        },
-        presencas: {
-          include: {
-            membro: true
-          }
-        }
+        cargos: { include: { membro: true } },
+        presencas: { include: { membro: true } },
       }
     });
 
     if (!ata) {
       return NextResponse.json({ error: 'Ata não encontrada' }, { status: 404 });
     }
+
+    // Buscar configs da loja
+    const configs = await prisma.configuracaoGeral.findMany({
+      where: { lojaId: ata.lojaId, chave: { in: ['nome_loja', 'oriente', 'endereco'] } }
+    });
+    const cfg = Object.fromEntries(configs.map(c => [c.chave, c.valor]));
+    const nomeLoja = cfg.nome_loja || 'Loja Maçônica';
+    const oriente = cfg.oriente || '';
+    const endereco = cfg.endereco || '';
 
     // Gerar HTML da ata
     const html = gerarHTMLAta(ata);
@@ -181,8 +182,8 @@ function gerarHTMLAta(ata) {
   </div>
 
   <div class="header">
-    <h1>A.R.L.S. Sabedoria de Salomão Nº 4774</h1>
-    <h2>Grande Oriente de Crato Ceará</h2>
+    <h1>${nomeLoja}</h1>
+    ${oriente ? `<h2>${oriente}</h2>` : ''}
     <h2>Ata de Sessão ${ata.livro}</h2>
   </div>
 

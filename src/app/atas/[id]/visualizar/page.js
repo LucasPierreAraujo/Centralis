@@ -56,12 +56,30 @@ export default function VisualizarAtaPage() {
   const toast = useToast();
   const [ata, setAta] = useState(null);
   const [gerando, setGerando] = useState(false);
+  const [configLoja, setConfigLoja] = useState({ nome: '', oriente: '', endereco: '' });
 
   useEffect(() => {
     if (params.id) {
       carregarAta();
+      carregarConfigLoja();
     }
   }, [params.id]);
+
+  const carregarConfigLoja = async () => {
+    try {
+      const [rNome, rOriente, rEndereco] = await Promise.all([
+        fetch('/api/configuracao-geral?chave=nome_loja', { credentials: 'include' }),
+        fetch('/api/configuracao-geral?chave=oriente', { credentials: 'include' }),
+        fetch('/api/configuracao-geral?chave=endereco', { credentials: 'include' }),
+      ]);
+      const [dNome, dOriente, dEndereco] = await Promise.all([rNome.json(), rOriente.json(), rEndereco.json()]);
+      setConfigLoja({
+        nome: dNome.valor || '',
+        oriente: dOriente.valor || '',
+        endereco: dEndereco.valor || '',
+      });
+    } catch { /* usa valores em branco se falhar */ }
+  };
 
   const carregarAta = async () => {
     try {
@@ -129,18 +147,20 @@ export default function VisualizarAtaPage() {
         pdf.setFont('helvetica', 'bold');
         let headerTextY = startY + 3;
 
-        pdf.text('Augusta e Respeitável Loja Simbólica', pageWidth / 2, headerTextY, { align: 'center' });
-        headerTextY += 5;
-        pdf.text('Sabedoria de Salomão Nº 4.774', pageWidth / 2, headerTextY, { align: 'center' });
+        pdf.text(configLoja.nome || 'Loja Maçônica', pageWidth / 2, headerTextY, { align: 'center' });
         headerTextY += 5;
 
-        pdf.setFontSize(9);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text('Rua João Aires de Aquino, Nº29, Vila Alta, 63119-450', pageWidth / 2, headerTextY, { align: 'center' });
-        headerTextY += 4;
+        if (configLoja.endereco) {
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'normal');
+          pdf.text(configLoja.endereco, pageWidth / 2, headerTextY, { align: 'center' });
+          headerTextY += 4;
+        }
 
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Crato-Ceará', pageWidth / 2, headerTextY, { align: 'center' });
+        if (configLoja.oriente) {
+          pdf.text(configLoja.oriente, pageWidth / 2, headerTextY, { align: 'center' });
+        }
 
         return margin + headerHeight;
       };
@@ -155,7 +175,7 @@ export default function VisualizarAtaPage() {
       yPosition += 6;
 
       pdf.setFontSize(10);
-      pdf.text('ORIENTE DE CRATO-CE', pageWidth / 2, yPosition, { align: 'center' });
+      pdf.text(configLoja.oriente ? `ORIENTE DE ${configLoja.oriente.toUpperCase()}` : 'GRANDE ORIENTE DO BRASIL', pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 5;
 
       pdf.text(`LIVRO DO ${ata.livro} MAÇOM`, pageWidth / 2, yPosition, { align: 'center' });
@@ -673,13 +693,14 @@ export default function VisualizarAtaPage() {
                 <img src="/logo-gob.jpeg" alt="GOB" className="h-12 w-12 md:h-20 md:w-20" />
                 <div className="text-center flex-1 mx-2 md:mx-4">
                   <h1 className="text-xs md:text-lg font-bold text-gray-900 mb-1 md:mb-2">
-                    Augusta e Respeitável Loja Simbólica<br />
-                    Sabedoria de Salomão Nº 4.774
+                    {configLoja.nome || 'Loja Maçônica'}
                   </h1>
-                  <p className="text-[10px] md:text-sm text-gray-700">
-                    Rua João Aires de Aquino, Nº29, Vila Alta, 63119-450
-                  </p>
-                  <p className="text-[10px] md:text-sm text-gray-700 font-semibold">Crato-Ceará</p>
+                  {configLoja.endereco && (
+                    <p className="text-[10px] md:text-sm text-gray-700">{configLoja.endereco}</p>
+                  )}
+                  {configLoja.oriente && (
+                    <p className="text-[10px] md:text-sm text-gray-700 font-semibold">{configLoja.oriente}</p>
+                  )}
                 </div>
                 <img src="/logo.jpeg" alt="Loja" className="h-12 w-12 md:h-20 md:w-20" />
               </div>
@@ -691,7 +712,9 @@ export default function VisualizarAtaPage() {
             {/* Título */}
             <div className="text-center mb-4 md:mb-6">
               <h2 className="text-sm md:text-lg font-bold text-gray-900">GRANDE ORIENTE DO BRASIL</h2>
-              <h3 className="text-xs md:text-base font-bold text-gray-900">ORIENTE DE CRATO-CE</h3>
+              {configLoja.oriente && (
+                <h3 className="text-xs md:text-base font-bold text-gray-900">ORIENTE DE {configLoja.oriente.toUpperCase()}</h3>
+              )}
               <h3 className="text-xs md:text-base font-bold text-gray-900">
                 LIVRO DO {ata.livro} MAÇOM
               </h3>

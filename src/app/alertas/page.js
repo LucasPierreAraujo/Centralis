@@ -85,6 +85,9 @@ Atenciosamente,`
 
   const carregarDados = async () => {
     try {
+      const resAuth = await fetch('/api/auth/me', { credentials: 'include' });
+      if (!resAuth.ok) { router.push('/login'); return; }
+
       const resMembros = await fetch('/api/membros', { credentials: 'include' });
       const membrosData = await resMembros.json();
       const membrosComEmail = Array.isArray(membrosData)
